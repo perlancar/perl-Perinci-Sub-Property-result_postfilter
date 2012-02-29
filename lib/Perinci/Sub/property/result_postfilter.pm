@@ -8,6 +8,133 @@ use Perinci::Util qw(declare_property);
 
 # VERSION
 
+sub filter_using_for {
+    my ($self, %args) = @_;
+
+    my $v    = $args{new} // $args{value};
+    return unless $v && keys(%$v);
+
+    $self->select_section('after_call');
+    $self->push_lines('', '# postfilter result');
+
+    my $term = $self->{_meta}{result_naked} ? '$res' : '$res->[2]';
+
+    my $errp = "result_postfilter: Unknown filter";
+    my $gen_process_item = sub {
+        my $t = shift;
+        my $code = '';
+        while (my ($a, $b) = each %$v) {
+            if ($a eq 're') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'Regexp'){";
+                if ($b eq 'str') {
+                    $code .= "$t = \"$t\"";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } elsif ($a eq 'date') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'DateTime'){";
+                if ($b eq 'epoch') {
+                    $code .= "$t = $t->epoch";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } elsif ($a eq 'code') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'CODE'){";
+                if ($b eq 'str') {
+                    $code .= "$t = 'CODE'";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } else {
+                die "$errp $a";
+            }
+        }
+        $code .= "elsif(ref($t) eq 'ARRAY') { \$resf_ary->($t) }";
+        $code .= "elsif(ref($t) eq 'HASH') { \$resf_hash->($t) }";
+        $code;
+    };
+
+    $self->push_lines(
+        'state $resf_ary; state $resf_hash;');
+    $self->push_lines(
+        'if (!$resf_ary ) { $resf_ary  = sub { '.
+            'for my $el (@{$_[0]}) { '.
+                $gen_process_item->('$el') . ' } } }'
+            );
+    $self->push_lines(
+        'if (!$resf_hash) { $resf_hash = sub { '.
+            'my $h=shift; for my $k (keys %$h) { '.
+                $gen_process_item->('$h->{$k}') . ' } } }'
+            );
+    $self->push_lines(
+        "for ($term) { " . $gen_process_item->('$_') . " }",
+    );
+}
+
+sub filter_using_rmap {
+    my ($self, %args) = @_;
+
+    my $v    = $args{new} // $args{value};
+    return unless $v && keys(%$v);
+
+    $self->select_section('after_call');
+    $self->push_lines('', '# postfilter result (rmap version)');
+
+    my $term = $self->{_meta}{result_naked} ? '$res' : '$res->[2]';
+
+    my $errp = "result_postfilter: Unknown filter";
+    my $gen_process_item = sub {
+        my $t = shift;
+        my $code = '';
+        while (my ($a, $b) = each %$v) {
+            if ($a eq 're') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'Regexp'){";
+                if ($b eq 'str') {
+                    $code .= "$t = \"$t\"";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } elsif ($a eq 'date') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'DateTime'){";
+                if ($b eq 'epoch') {
+                    $code .= "$t = $t->epoch";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } elsif ($a eq 'code') {
+                $code .= ($code ? "elsif":"if").
+                    "(ref($t) eq 'CODE'){";
+                if ($b eq 'str') {
+                    $code .= "$t = 'CODE'";
+                } else {
+                    die "$errp for $a: $b";
+                }
+                $code.="}";
+            } else {
+                die "$errp $a";
+            }
+        }
+        $code;
+    };
+
+    $self->push_lines(
+        'use Data::Rmap qw(rmap_ref);',
+        'rmap_ref { '. $gen_process_item->('$_') . " } $term;"
+    );
+}
+
+our $_implementation = 'for';
+
 declare_property(
     name => 'result_postfilter',
     type => 'function',
@@ -20,75 +147,13 @@ declare_property(
             convert => 1,
         },
         handler => sub {
-            my ($self, %args) = @_;
-
-            my $v    = $args{new} // $args{value};
-            return unless $v && keys(%$v);
-
-            $self->select_section('after_call');
-            $self->push_lines('', '# postfilter result');
-
-            my $term = $self->{_meta}{result_naked} ? '$res' : '$res->[2]';
-
-            my $errp = "result_postfilter: Unknown filter";
-            my $gen_process_item = sub {
-                my $t = shift;
-                my $code = '';
-                while (my ($a, $b) = each %$v) {
-                    if ($a eq 're') {
-                        $code .= ($code ? "elsif":"if").
-                            "(ref($t) eq 'Regexp'){";
-                        if ($b eq 'str') {
-                            $code .= "$t = \"$t\"";
-                        } else {
-                            die "$errp for $a: $b";
-                        }
-                        $code.="}";
-                    } elsif ($a eq 'date') {
-                        $code .= ($code ? "elsif":"if").
-                            "(ref($t) eq 'DateTime'){";
-                        if ($b eq 'epoch') {
-                            $code .= "$t = $t->epoch";
-                        } else {
-                            die "$errp for $a: $b";
-                        }
-                        $code.="}";
-                    } elsif ($a eq 'code') {
-                        $code .= ($code ? "elsif":"if").
-                            "(ref($t) eq 'CODE'){";
-                        if ($b eq 'str') {
-                            $code .= "$t = 'CODE'";
-                        } else {
-                            die "$errp for $a: $b";
-                        }
-                        $code.="}";
-                    } else {
-                        die "$errp $a";
-                    }
-                }
-                $code .= "elsif(ref($t) eq 'ARRAY') { \$resf_ary->($t) }";
-                $code .= "elsif(ref($t) eq 'HASH') { \$resf_hash->($t) }";
-                $code;
-            };
-
-            #    'state $ary_rpf = sub { ;');
-            #$self->indent;
-
-            $self->push_lines(
-                'state $resf_ary; state $resf_hash;');
-            $self->push_lines(
-                'if (!$resf_ary ) { $resf_ary  = sub { '.
-                    'for my $el (@{$_[0]}) { '.
-                        $gen_process_item->('$el') . ' } } }'
-            );
-            $self->push_lines(
-                'if (!$resf_hash) { $resf_hash = sub { '.
-                    'my $h=shift; for my $k (keys %$h) { '.
-                        $gen_process_item->('$h->{$k}') . ' } } }'
-            );
-            $self->push_lines(
-                "for ($term) { " . $gen_process_item->('$_') . " }",
-            );
+            if ($_implementation eq 'for') {
+                filter_using_for(@_);
+            } elsif ($_implementation eq 'rmap') {
+                filter_using_rmap(@_);
+            } else {
+                die "Unknown implementation '$_implementation'";
+            }
         },
     },
 );
@@ -134,6 +199,9 @@ More sophisticated filtering rules might be specified in the future.
 Filtering using generated code can be faster since the code will use for() loop
 and inline conversion instead of callback for each data item (higher subroutine
 call overhead).
+
+The source code also contains another filtering implementation using
+L<Data::Rmap>, for benchmarking purposes only.
 
 
 =head1 SEE ALSO
