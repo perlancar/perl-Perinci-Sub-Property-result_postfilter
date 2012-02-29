@@ -204,6 +204,23 @@ The source code also contains another filtering implementation using
 L<Data::Rmap>, for benchmarking purposes only.
 
 
+=head1 NOTES
+
+Another alternative is using the encoder's facility, for example the L<JSON>
+module can convert blessed object:
+
+ use JSON 2;
+ my $encoder = JSON->new->convert_blessed;
+ {
+     local *DateTime::TO_JSON = sub { $_[0]->ymd };
+     print $encoder->encode($doc);
+ }
+
+But this currently can't convert coderefs. JSON also can't handle circular
+references, which neither this wrapper property nor the above way can work
+around.
+
+
 =head1 SEE ALSO
 
 L<Perinci>
