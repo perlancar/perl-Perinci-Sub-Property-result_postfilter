@@ -141,6 +141,7 @@ declare_property(
     schema => ['hash'],
     wrapper => {
         meta => {
+            v       => 2,
             # very low, we want to be the last to process result before
             # returning it
             prio    => 100,
