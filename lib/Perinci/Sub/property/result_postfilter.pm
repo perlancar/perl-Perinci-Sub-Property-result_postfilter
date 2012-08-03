@@ -77,62 +77,6 @@ sub filter_using_for {
     );
 }
 
-sub filter_using_rmap {
-    my ($self, %args) = @_;
-
-    my $v    = $args{new} // $args{value};
-    return unless $v && keys(%$v);
-
-    $self->select_section('after_call');
-    $self->push_lines('', '# postfilter result (rmap version)');
-
-    my $term = $self->{_meta}{result_naked} ? '$res' : '$res->[2]';
-
-    my $errp = "result_postfilter: Unknown filter";
-    my $gen_process_item = sub {
-        my $t = shift;
-        my $code = '';
-        while (my ($a, $b) = each %$v) {
-            if ($a eq 're') {
-                $code .= ($code ? "elsif":"if").
-                    "(ref($t) eq 'Regexp'){";
-                if ($b eq 'str') {
-                    $code .= "$t = \"$t\"";
-                } else {
-                    die "$errp for $a: $b";
-                }
-                $code.="}";
-            } elsif ($a eq 'date') {
-                $code .= ($code ? "elsif":"if").
-                    "(ref($t) eq 'DateTime'){";
-                if ($b eq 'epoch') {
-                    $code .= "$t = $t->epoch";
-                } else {
-                    die "$errp for $a: $b";
-                }
-                $code.="}";
-            } elsif ($a eq 'code') {
-                $code .= ($code ? "elsif":"if").
-                    "(ref($t) eq 'CODE'){";
-                if ($b eq 'str') {
-                    $code .= "$t = 'CODE'";
-                } else {
-                    die "$errp for $a: $b";
-                }
-                $code.="}";
-            } else {
-                die "$errp $a";
-            }
-        }
-        $code;
-    };
-
-    $self->push_lines(
-        'use Data::Rmap qw(rmap_ref);',
-        'rmap_ref { '. $gen_process_item->('$_') . " } $term;"
-    );
-}
-
 our $_implementation = 'for';
 
 declare_property(
