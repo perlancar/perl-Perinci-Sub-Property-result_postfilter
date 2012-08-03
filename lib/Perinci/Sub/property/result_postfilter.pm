@@ -94,8 +94,6 @@ declare_property(
         handler => sub {
             if ($_implementation eq 'for') {
                 filter_using_for(@_);
-            } elsif ($_implementation eq 'rmap') {
-                filter_using_rmap(@_);
             } else {
                 die "Unknown implementation '$_implementation'";
             }
@@ -144,9 +142,6 @@ More sophisticated filtering rules might be specified in the future.
 Filtering using generated code can be faster since the code will use for() loop
 and inline conversion instead of callback for each data item (higher subroutine
 call overhead).
-
-The source code also contains another filtering implementation using
-L<Data::Rmap>, for benchmarking purposes only.
 
 
 =head1 NOTES
