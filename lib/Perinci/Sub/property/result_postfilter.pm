@@ -118,8 +118,7 @@ declare_property(
 
 B<NOTE:> The use of this property is now deprecated. Generating filtering code
 for each function is quite wasteful when there are hundreds or more functions
-that are wrapped. Instead, filtering is now done in formatters like
-L<Data::Format::Pretty::JSON> and L<Data::Format::Pretty::YAML>.
+that are wrapped. Instead, see L<Data::Clean::JSON>.
 
 This property specifies postfilters for function result. Currently the focus of
 this property is converting values that are unsafe when exporting to JSON/YAML.
