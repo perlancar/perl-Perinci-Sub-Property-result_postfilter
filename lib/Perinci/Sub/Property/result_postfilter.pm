@@ -1,4 +1,4 @@
-package Perinci::Sub::Wrapper::property::result_postfilter;
+package Perinci::Sub::Wrapper::Property::result_postfilter;
 
 use 5.010;
 use strict;
