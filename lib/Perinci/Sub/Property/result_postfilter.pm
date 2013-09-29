@@ -1,6 +1,6 @@
 package Perinci::Sub::Property::result_postfilter;
 
-use 5.010;
+use 5.010001;
 use strict;
 use warnings;
 
