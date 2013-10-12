@@ -17,7 +17,7 @@ sub filter_using_for {
     $self->select_section('after_call');
     $self->push_lines('', '# postfilter result');
 
-    my $term = $self->{_meta}{result_naked} ? '$res' : '$res->[2]';
+    my $term = $self->{_meta}{result_naked} ? '$w_res' : '$w_res->[2]';
 
     my $errp = "result_postfilter: Unknown filter";
     my $gen_process_item = sub {
@@ -55,20 +55,20 @@ sub filter_using_for {
                 die "$errp $a";
             }
         }
-        $code .= "elsif(ref($t) eq 'ARRAY') { \$resf_ary->($t) }";
-        $code .= "elsif(ref($t) eq 'HASH') { \$resf_hash->($t) }";
+        $code .= "elsif(ref($t) eq 'ARRAY') { \$w_resf_ary->($t) }";
+        $code .= "elsif(ref($t) eq 'HASH') { \$w_resf_hash->($t) }";
         $code;
     };
 
     $self->push_lines(
-        'state $resf_ary; state $resf_hash;');
+        'state $w_resf_ary; state $w_resf_hash;');
     $self->push_lines(
-        'if (!$resf_ary ) { $resf_ary  = sub { '.
+        'if (!$w_resf_ary ) { $w_resf_ary  = sub { '.
             'for my $el (@{$_[0]}) { '.
                 $gen_process_item->('$el') . ' } } }'
             );
     $self->push_lines(
-        'if (!$resf_hash) { $resf_hash = sub { '.
+        'if (!$w_resf_hash) { $w_resf_hash = sub { '.
             'my $h=shift; for my $k (keys %$h) { '.
                 $gen_process_item->('$h->{$k}') . ' } } }'
             );
