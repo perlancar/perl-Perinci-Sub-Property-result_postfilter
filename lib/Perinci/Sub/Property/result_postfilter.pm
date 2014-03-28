@@ -14,7 +14,7 @@ sub filter_using_for {
     my $v    = $args{new} // $args{value};
     return unless $v && keys(%$v);
 
-    $self->select_section('after_call');
+    $self->select_section('after_call_after_res_validation');
     $self->push_lines('', '# postfilter result');
 
     my $term = $self->{_meta}{result_naked} ? '$_w_res' : '$_w_res->[2]';
